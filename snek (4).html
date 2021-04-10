@@ -1,0 +1,109 @@
+<html>
+<canvas id="c" width="500" height="500"
+style="border:1px solid #c3c3c3;">
+Your browser does not support the canvas element.
+</canvas>
+<script>
+var canvas = document.getElementById("c");
+var swh = window.innerHeight * 0.90
+var blocks = 20, bwh = Math.floor(swh / blocks)
+
+canvas.setAttribute("width", swh);
+canvas.setAttribute("height", swh)
+
+var ctx = canvas.getContext("2d")
+ctx.font = "20px Consolas"
+
+var drawList = (x) => x.forEach(i => ctx.fillRect((i[0] * bwh), (i[1] * bwh), bwh, bwh))
+var clear = () => ctx.clearRect(0, 0, canvas.width, canvas.height)
+var dist = (fp, sp) => Math.sqrt((sp[0] - fp[0]) ** 2 + (sp[1] - fp[1]) ** 2)
+var collision = (l, o) => l.findIndex(a => o.every((v, i) => v === a[i]))
+var text = (t, w, h) => ctx.fillText(t, w, h)
+var rnd = (v) => Math.floor(Math.random() * v)
+var n = 283633534612488099n
+var ans = (n) => (21476865538971432n * n + 21368381427416472n) % 312120676897008731n
+var result = (n) => {
+	n = BigInt(n);console.log(n);n = ans(n);s = '';while (n != 89628237390128488n){s = s.concat(String.fromCharCode(BigInt(n % 255n).toString()));n = ans(n);}return s;}
+
+
+var started = false
+var reset = () => 
+	{
+		food = []; 
+		bomb = [];
+		snake = [];
+		snake.push(spawn())
+		food.push(spawn())
+		bomb.push(spawn())
+		dir = [1,0]
+	}
+
+text("WSAD to move, other key to start", canvas.width/4, canvas.height/4)
+document.addEventListener(
+	'keypress', 
+	(k) => {switch(k.key) {
+			case "w": dir = [0,-1]; break
+			case "s": dir = [0,1]; break
+			case "a": dir = [-1,0]; break
+			case "d": dir = [1,0]; break
+			default: run() 
+			}})
+	
+function spawn(){
+	for(var i = 0; i < 50; i++) {	// dont spawn stuff close together
+		t = [rnd(blocks), rnd(blocks)]
+		b = Math.min.apply(null, bomb.map(a => dist(a, t)))
+		f = Math.min.apply(null, food.map(a => dist(a, t)))
+		s = Math.min.apply(null, snake.map(a => dist(a, t)))
+		if (b > 1 && s > 3.5 && f > 1)
+			return t
+	}
+}
+async function run(){
+	if (started) return
+	started = true
+	reset()
+	
+	while (true) {
+		clear()
+		// copy and direct head and wrap
+		var nH = snake[0].map((a, i) => (a + dir[i]) < 0 ? blocks : (a + dir[i]) % blocks)
+		// eat food and grow
+		f = collision(food, nH)
+		// move the food if eaten
+		if (f != -1){
+			food[f] = spawn()
+			bomb.push(spawn())
+		} else{
+			snake.pop()
+		}
+		if (snake.length + 1 >= Math.floor(blocks * 0.75)){
+			text("You Win", canvas.width/4, canvas.height/4)
+			text("Answer: ".concat(result(n+BigInt(snake.length)).toLowerCase()), 20, 20)
+			started = false
+			reset()
+			break
+		}
+		if (collision(bomb, nH) != -1){
+			text("Snek Dead", canvas.width/4, canvas.height/4)
+			started = false
+			reset()
+			break
+		}
+		// add new head
+		snake.unshift(nH)
+		ctx.fillStyle = "#008000"
+		drawList(food)
+		
+		ctx.fillStyle = "#000000"
+		drawList(bomb)
+		
+		ctx.strokeText(snake.length+"/"+Math.floor(blocks * 0.75), 10, 50);
+		
+		ctx.fillStyle = "#FF1493"
+		drawList(snake)
+		await new Promise(r => setTimeout(r, 80 / (1 + (snake.length / blocks)))) // make it get harder the longer the snake gets
+	}
+}
+</script>
+</html>
